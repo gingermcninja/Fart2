@@ -26,6 +26,7 @@ class AudioManager: ObservableObject {
         recordings.removeAll { $0 == recording }
         let url = recording.url
         try? FileManager.default.removeItem(at: url)
+        notifyAudioObservers()
     }
     
     func registerAudioObserver(observer: AudioObserver) {

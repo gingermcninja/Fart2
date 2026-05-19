@@ -13,7 +13,8 @@ struct ContentView: View {
 
     var body: some View {
         TabView {
-            BoardView()
+            let boardViewModel = BoardViewModel(audioManager: audioManager)
+            BoardView().environmentObject(boardViewModel)
             .tabItem { Label("Playback", systemImage: "play.circle") }
             ListView()
             .tabItem { Label("List", systemImage: "list.bullet.circle") }

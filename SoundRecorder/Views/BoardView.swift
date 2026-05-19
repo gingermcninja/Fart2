@@ -9,13 +9,9 @@ import SwiftUI
 import AVFoundation
 
 struct BoardView: View {
-    @EnvironmentObject var audioManager: AudioManager
+    @EnvironmentObject var boardViewModel: BoardViewModel
     @State private var showingAddSheet = false
     @State private var buttonToReassign: SoundButton?
-
-    private var boardViewModel: BoardViewModel {
-        BoardViewModel(audioManager: audioManager)
-    }
 
     private let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -70,11 +66,9 @@ struct BoardView: View {
         }
         .sheet(isPresented: $showingAddSheet) {
             RecordingPickerView(mode: .add, boardViewModel: boardViewModel)
-                .environmentObject(audioManager)
         }
         .sheet(item: $buttonToReassign) { button in
             RecordingPickerView(mode: .edit(button), boardViewModel: boardViewModel)
-                .environmentObject(audioManager)
         }
     }
 }
@@ -116,9 +110,8 @@ enum PickerMode: Identifiable {
 }
 
 struct RecordingPickerView: View {
-    @EnvironmentObject var audioManager: AudioManager
     let mode: PickerMode
-    let boardViewModel: BoardViewModel
+    @State var boardViewModel: BoardViewModel
     @Environment(\.dismiss) private var dismiss
 
     private var title: String {
@@ -131,11 +124,11 @@ struct RecordingPickerView: View {
     var body: some View {
         NavigationStack {
             List {
-                if audioManager.recordingNames.isEmpty {
+                if boardViewModel.audioManager.recordings.isEmpty {
                     Text("No recordings available")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(audioManager.recordings, id: \.self) { recording in
+                    ForEach(boardViewModel.audioManager.recordings, id: \.self) { recording in
                         Button {
                             selectRecording(recording: recording)
                         } label: {
@@ -167,23 +160,6 @@ struct RecordingPickerView: View {
             }
         }
     }
-
-    /*
-    private func selectRecording(_ url: URL) {
-        let name = url.deletingPathExtension().lastPathComponent
-        
-        switch mode {
-        case .add:
-            audioManager.addSoundButton(title: name, recording: url)
-        case .edit(let button):
-            if let index = audioManager.soundButtons.firstIndex(where: { $0.id == button.id }) {
-                audioManager.soundButtons[index].name = name
-                audioManager.soundButtons[index].recordingURL = url
-            }
-        }
-        dismiss()
-    }
-     */
     
     private func selectRecording(recording: Recording) {
         let name = recording.name
@@ -203,6 +179,10 @@ struct RecordingPickerView: View {
 }
 
 #Preview {
+    let audioManager = AudioManager()
+    let boardViewModel = BoardViewModel(audioManager: audioManager)
     BoardView()
-        .environmentObject(AudioManager())
+        //.environmentObject(audioManager)
+        .environmentObject(boardViewModel)
+    
 }

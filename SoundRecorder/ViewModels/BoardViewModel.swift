@@ -9,8 +9,8 @@ import Foundation
 import AVFoundation
 import Combine
 
-class BoardViewModel: AudioObserver {
-    private let audioManager: AudioManager
+class BoardViewModel: AudioObserver, ObservableObject {
+    let audioManager: AudioManager
     @Published var soundButtons: [SoundButton] = []
 
     init(audioManager: AudioManager) {
