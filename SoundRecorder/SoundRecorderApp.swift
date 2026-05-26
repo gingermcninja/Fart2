@@ -11,19 +11,16 @@ import AVFoundation
 @main
 struct SoundRecorderApp: App {
     @StateObject private var audioManager: AudioManager
-    @StateObject private var boardViewModel: BoardViewModel
 
     init() {
         let manager = AudioManager()
         _audioManager = StateObject(wrappedValue: manager)
-        _boardViewModel = StateObject(wrappedValue: BoardViewModel(audioManager: manager))
+        
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(audioManager)
-                .environmentObject(boardViewModel)
+            ContentView(audioManager: audioManager)
         }
     }
 }

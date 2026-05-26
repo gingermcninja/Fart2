@@ -19,7 +19,7 @@ class AudioRecorderViewModel: NSObject, ObservableObject, AVAudioRecorderDelegat
     private var recorder: AVAudioRecorder? = nil
     private var timer: Timer? = nil
     private var currentFileURL: URL? = nil
-    let audioManager: AudioManager
+    private let audioManager: AudioManager
 
     init(audioManager: AudioManager) {
         self.audioManager = audioManager

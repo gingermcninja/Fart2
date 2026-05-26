@@ -2,3 +2,4 @@ AuthKey_4Y72995Z84.p8
 *.ipa
 *.app.dSYM.zip
 fastlane/report.xml
+SoundRecorder.xcodeproj/xcuserdata
