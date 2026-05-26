@@ -20,111 +20,124 @@ class PlaybackDelegate: NSObject, AVAudioPlayerDelegate {
 
 struct ListView: View {
     @EnvironmentObject var audioManager: AudioManager
-    @State private var currentlyPlayingURL: URL?
-    @State private var renamingURL: URL?
+    @State private var currentlyPlayingRecording: Recording?
+    @State private var renamingRecording: Recording?
     @State private var renameText: String = ""
     @State private var playbackDelegate = PlaybackDelegate()
 
     var body: some View {
         NavigationStack {
             List {
-                if audioManager.recordingNames.isEmpty {
+                if audioManager.recordings.isEmpty {
                     Text("No recordings yet")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.gray)
+                        .listRowBackground(Color.clear)
                 } else {
-                    ForEach(Array(audioManager.recordingNames.enumerated()), id: \.element) { index, url in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(url.lastPathComponent)
-                                    .font(.body)
-                                Text(url.deletingPathExtension().lastPathComponent)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            HStack(spacing: 12) {
-                                if currentlyPlayingURL == url {
-                                    // Now Playing indicator
-                                    Circle()
-                                        .fill(Color.green)
-                                        .frame(width: 8, height: 8)
+                    ForEach(audioManager.recordings, id: \.self) { recording in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(recording.name)
+                                        .font(.body)
+                                        .foregroundColor(.white)
+                                    Text(recording.url.lastPathComponent)
+                                        .font(.caption)
+                                        .foregroundStyle(.gray)
                                 }
-                                Button(action: {
-                                    if currentlyPlayingURL == url {
-                                        audioManager.audioPlayer?.stop()
-                                        currentlyPlayingURL = nil
-                                    } else {
-                                        playRecording(url: url)
+                                Spacer()
+                                HStack(spacing: 12) {
+                                    if currentlyPlayingRecording == recording {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 8, height: 8)
                                     }
-                                }) {
-                                    Image(systemName: currentlyPlayingURL == url ? "stop.circle" : "play.circle")
-                                        .imageScale(.large)
+                                    Button(action: {
+                                        if currentlyPlayingRecording == recording {
+                                            audioManager.audioPlayer?.stop()
+                                            currentlyPlayingRecording = nil
+                                        } else {
+                                            playRecording(recording: recording)
+                                        }
+                                    }) {
+                                        Image(systemName: currentlyPlayingRecording == recording ? "stop.circle" : "play.circle")
+                                            .imageScale(.large)
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                            }
+                            .listRowBackground(Color.white.opacity(0.1))
+                            .contentShape(Rectangle())
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    renameText = recording.name
+                                    renamingRecording = recording
+                                } label: {
+                                    Label("Rename", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
+                            .onTapGesture {
+                                if currentlyPlayingRecording == recording {
+                                    audioManager.audioPlayer?.stop()
+                                    currentlyPlayingRecording = nil
+                                } else {
+                                    self.playRecording(recording: recording)
                                 }
                             }
                         }
-                        .contentShape(Rectangle())
-                        .swipeActions(edge: .leading) {
-                            Button {
-                                renameText = url.deletingPathExtension().lastPathComponent
-                                renamingURL = url
-                            } label: {
-                                Label("Rename", systemImage: "pencil")
-                            }
-                            .tint(.blue)
-                        }
-                        .onTapGesture {
-                            if currentlyPlayingURL == url {
-                                audioManager.audioPlayer?.stop()
-                                currentlyPlayingURL = nil
-                            } else {
-                                playRecording(url: url)
+                        .onDelete { indexSet in
+                            for index in indexSet {
+                                let recordingToDelete = audioManager.recordings[index]
+                                audioManager.deleteRecording(recording: recordingToDelete)
                             }
                         }
-                    }
-                    .onDelete { indexSet in
-                        for index in indexSet {
-                            let url = audioManager.recordingNames[index]
-                            try? FileManager.default.removeItem(at: url)
-                        }
-                        audioManager.recordingNames.remove(atOffsets: indexSet)
-                    }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.black)
             .navigationTitle("Recordings")
+            .preferredColorScheme(.dark)
             .onAppear {
                 playbackDelegate.onFinished = {
-                    currentlyPlayingURL = nil
+                    currentlyPlayingRecording = nil
                 }
             }
             .alert("Rename Recording", isPresented: Binding(
-                get: { renamingURL != nil },
-                set: { if !$0 { renamingURL = nil } }
+                get: { renamingRecording != nil },
+                set: { if !$0 { renamingRecording = nil } }
             )) {
                 TextField("Name", text: $renameText)
-                Button("Cancel", role: .cancel) { renamingURL = nil }
+                Button("Cancel", role: .cancel) { renamingRecording = nil }
                 Button("Save") {
-                    guard let url = renamingURL, !renameText.isEmpty else { return }
-                    if let newURL = audioManager.renameRecording(at: url, to: renameText) {
-                        if currentlyPlayingURL == url {
-                            currentlyPlayingURL = newURL
-                        }
-                    }
-                    renamingURL = nil
+                    guard let recording = renamingRecording, !renameText.isEmpty else { return }
+                    audioManager.renameRecording(recording: recording, to: renameText)
+                    renamingRecording = nil
                 }
             }
         }
     }
-    private func playRecording(url: URL) {
+
+    private func playRecording(recording: Recording) {
         do {
-            audioManager.audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioManager.audioPlayer = try AVAudioPlayer(contentsOf: recording.url)
             audioManager.audioPlayer?.delegate = playbackDelegate
             audioManager.audioPlayer?.prepareToPlay()
             audioManager.audioPlayer?.play()
-            currentlyPlayingURL = url
+            currentlyPlayingRecording = recording
         } catch {
             // Silently fail
         }
     }
+    
+    private func onTap(currentlyPlayingRecording: inout Recording?, recording: Recording, audioManager:AudioManager) {
+        if currentlyPlayingRecording == recording {
+            audioManager.audioPlayer?.stop()
+            currentlyPlayingRecording = nil
+        } else {
+            self.playRecording(recording: recording)
+        }
+    }
+     
+    
 }
 
 #Preview {

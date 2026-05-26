@@ -9,24 +9,31 @@ import SwiftUI
 import AVFoundation
 
 struct ContentView: View {
-    @EnvironmentObject var audioManager: AudioManager
-
+    @StateObject private var audioManager: AudioManager
+    @StateObject private var boardViewModel: BoardViewModel
+    
     var body: some View {
         TabView {
             BoardView()
+                .environmentObject(boardViewModel)
             .tabItem { Label("Playback", systemImage: "play.circle") }
             ListView()
+                .environmentObject(audioManager)
             .tabItem { Label("List", systemImage: "list.bullet.circle") }
             RecordView(audioManager: audioManager)
             .tabItem { Label("Record", systemImage: "mic.circle") }
         }
     }
     
-    
-    
+    init(audioManager: AudioManager) {
+        let bvm = BoardViewModel(audioManager: audioManager)
+        _audioManager = StateObject(wrappedValue: audioManager)
+        _boardViewModel = StateObject(wrappedValue: bvm)
+    }
 }
 
 #Preview {
-    ContentView()
-        .environmentObject(AudioManager())
+    let audioManager = AudioManager()
+    ContentView(audioManager: audioManager)
+        .environmentObject(audioManager)
 }

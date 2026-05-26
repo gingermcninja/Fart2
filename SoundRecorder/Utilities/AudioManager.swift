@@ -12,29 +12,36 @@ import CoreMedia
 
 class AudioManager: ObservableObject {
     @Published var recordingNames: [URL] = []
-    @Published var buttonAssignments: [Int: URL] = [:]
+    @Published var recordings: [Recording] = []
+    
     var audioPlayer: AVAudioPlayer?
+    var audioObservers: [AudioObserver] = []
 
-    func renameRecording(at url: URL, to newName: String) -> URL? {
-        let newURL = url.deletingLastPathComponent()
-            .appendingPathComponent(newName)
-            .appendingPathExtension(url.pathExtension)
-
-        do {
-            try FileManager.default.moveItem(at: url, to: newURL)
-        } catch {
-            return nil
+    func addRecording(recording: Recording) async {
+        recordings.append(recording)
+    }
+    
+    func deleteRecording(recording: Recording) {
+        recordings.removeAll { $0 == recording }
+        let url = recording.url
+        try? FileManager.default.removeItem(at: url)
+        notifyAudioObservers()
+    }
+    
+    func registerAudioObserver(observer: AudioObserver) {
+        audioObservers.append(observer)
+    }
+    
+    func notifyAudioObservers() {
+        for observer in audioObservers {
+            observer.recordingsUpdated()
         }
-
-        if let index = recordingNames.firstIndex(of: url) {
-            recordingNames[index] = newURL
+    }
+    
+    func renameRecording(recording: Recording, to newName: String) {
+        if let index = recordings.firstIndex(of: recording) {
+            recordings[index].name = newName
         }
-
-        for (buttonIndex, assignedURL) in buttonAssignments where assignedURL == url {
-            buttonAssignments[buttonIndex] = newURL
-        }
-
-        return newURL
     }
 
     func trimRecording(source: URL, startTime: TimeInterval, endTime: TimeInterval) async -> URL? {

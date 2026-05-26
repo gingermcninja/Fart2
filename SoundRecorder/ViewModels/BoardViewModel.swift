@@ -7,36 +7,39 @@
 
 import Foundation
 import AVFoundation
+import Combine
 
-class BoardViewModel {
-    private let audioManager: AudioManager
+class BoardViewModel: AudioObserver, ObservableObject {
+    let audioManager: AudioManager
+    @Published var soundButtons: [SoundButton] = []
 
     init(audioManager: AudioManager) {
         self.audioManager = audioManager
+        audioManager.registerAudioObserver(observer: self)
+    }
+    
+    func addSoundButton(title: String, recording: Recording) {
+        soundButtons.append(SoundButton(title: title, recording: recording))
     }
 
-    func btnPressed(buttonIndex: Int) {
-        let url: URL
-        let fileTypeHint: String?
+    func removeSoundButton(id: UUID) {
+        soundButtons.removeAll { $0.id == id }
+    }
 
-        if let assignedURL = audioManager.buttonAssignments[buttonIndex] {
-            url = assignedURL
-            fileTypeHint = nil
-        } else if let bundleURL = Bundle.main.url(forResource: "fart-0\(buttonIndex)", withExtension: "wav") {
-            url = bundleURL
-            fileTypeHint = AVFileType.wav.rawValue
-        } else {
-            return
-        }
 
+    func play(url: URL) {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
-            audioManager.audioPlayer = try AVAudioPlayer(contentsOf: url, fileTypeHint: fileTypeHint)
+            audioManager.audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioManager.audioPlayer?.play()
         } catch {
             print(error.localizedDescription)
         }
     }
-
+    
+    func recordingsUpdated() {
+        let updatedButtons = soundButtons.filter { audioManager.recordings.contains($0.recording) }
+        soundButtons = updatedButtons
+    }
 }

@@ -8,24 +8,86 @@
 import SwiftUI
 import AVFoundation
 
-extension Int: @retroactive Identifiable {
-    public var id: Int { self }
-}
+struct BoardView: View {
+    @EnvironmentObject var boardViewModel: BoardViewModel
+    @State private var showingAddSheet = false
+    @State private var buttonToReassign: SoundButton?
 
-struct PlaybackButton: View {
-    var buttonText: String
-    var buttonIndex: Int
-    var boardViewModel: BoardViewModel
-    var onLongPress: () -> Void
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
 
     var body: some View {
-        Text(buttonText)
-            .padding()
-            .background(Color.red.ignoresSafeArea(.all))
-            .foregroundStyle(.white)
-            .clipShape(Capsule())
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Sound Board")
+                        .font(.largeTitle).bold()
+                        .foregroundColor(.white)
+                        .padding(.horizontal)
+
+                    LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(boardViewModel.soundButtons) { button in
+                        SoundButtonView(button: button) {
+                            boardViewModel.play(url: button.recording.url)
+                        } onLongPress: {
+                            buttonToReassign = button
+                        }
+                    }
+
+                    Button {
+                        showingAddSheet = true
+                    } label: {
+                        VStack(spacing: 8) {
+                            Image(systemName: "plus")
+                                .font(.title)
+                            Text("Add Sound")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [6]))
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                    .padding(.horizontal)
+                }
+                .padding(.bottom)
+            }
+        }
+        .sheet(isPresented: $showingAddSheet) {
+            RecordingPickerView(mode: .add, boardViewModel: boardViewModel, audioManager: boardViewModel.audioManager)
+        }
+        .sheet(item: $buttonToReassign) { button in
+            RecordingPickerView(mode: .edit(button), boardViewModel: boardViewModel, audioManager: boardViewModel.audioManager)
+        }
+    }
+}
+
+struct SoundButtonView: View {
+    let button: SoundButton
+    let onTap: () -> Void
+    let onLongPress: () -> Void
+
+    var body: some View {
+        Text(button.title)
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 100)
+            .background(Color.red)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .onTapGesture {
-                boardViewModel.btnPressed(buttonIndex: buttonIndex)
+                onTap()
             }
             .onLongPressGesture {
                 onLongPress()
@@ -33,50 +95,64 @@ struct PlaybackButton: View {
     }
 }
 
+// MARK: - Recording Picker
+
+enum PickerMode: Identifiable {
+    case add
+    case edit(SoundButton)
+
+    var id: String {
+        switch self {
+        case .add: return "add"
+        case .edit(let button): return button.id.uuidString
+        }
+    }
+}
+
 struct RecordingPickerView: View {
-    @EnvironmentObject var audioManager: AudioManager
-    let buttonIndex: Int
+    let mode: PickerMode
+    @ObservedObject var boardViewModel: BoardViewModel
+    @ObservedObject var audioManager: AudioManager
     @Environment(\.dismiss) private var dismiss
+
+    private var title: String {
+        switch mode {
+        case .add: return "Add Sound"
+        case .edit: return "Edit Sound"
+        }
+    }
 
     var body: some View {
         NavigationStack {
             List {
-                if audioManager.recordingNames.isEmpty {
+                if audioManager.recordings.isEmpty {
                     Text("No recordings available")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(audioManager.recordingNames, id: \.self) { url in
+                    ForEach(audioManager.recordings, id: \.self) { recording in
                         Button {
-                            audioManager.buttonAssignments[buttonIndex] = url
-                            dismiss()
+                            selectRecording(recording: recording)
                         } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(url.deletingPathExtension().lastPathComponent)
-                                        .font(.body)
-                                    Text(url.lastPathComponent)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if audioManager.buttonAssignments[buttonIndex] == url {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.blue)
-                                }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(recording.name)
+                                    .font(.body)
+                                Text(recording.url.lastPathComponent)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         .foregroundStyle(.primary)
                     }
                 }
 
-                if audioManager.buttonAssignments[buttonIndex] != nil {
-                    Button("Reset to Default", role: .destructive) {
-                        audioManager.buttonAssignments[buttonIndex] = nil
+                if case .edit(let button) = mode {
+                    Button("Remove from Board", role: .destructive) {
+                        boardViewModel.removeSoundButton(id: button.id)
                         dismiss()
                     }
                 }
             }
-            .navigationTitle("Assign to Button \(buttonIndex)")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -85,49 +161,27 @@ struct RecordingPickerView: View {
             }
         }
     }
-}
-
-struct BoardView: View {
-    @EnvironmentObject var audioManager: AudioManager
-    @State private var selectedButtonIndex: Int?
-    var boardViewModel: BoardViewModel { BoardViewModel(audioManager: audioManager) }
-
-    var body: some View {
-        Color.black.ignoresSafeArea().overlay {
-            VStack {
-                HStack(spacing: 50) {
-                    PlaybackButton(buttonText: buttonLabel(1), buttonIndex: 1, boardViewModel: boardViewModel) { selectedButtonIndex = 1 }
-                    PlaybackButton(buttonText: buttonLabel(2), buttonIndex: 2, boardViewModel: boardViewModel) { selectedButtonIndex = 2 }
-                }
-                .padding()
-                HStack(spacing: 50) {
-                    PlaybackButton(buttonText: buttonLabel(3), buttonIndex: 3, boardViewModel: boardViewModel) { selectedButtonIndex = 3 }
-                    PlaybackButton(buttonText: buttonLabel(4), buttonIndex: 4, boardViewModel: boardViewModel) { selectedButtonIndex = 4 }
-                }
-                .padding()
-                HStack(spacing: 50) {
-                    PlaybackButton(buttonText: buttonLabel(5), buttonIndex: 5, boardViewModel: boardViewModel) { selectedButtonIndex = 5 }
-                    PlaybackButton(buttonText: buttonLabel(6), buttonIndex: 6, boardViewModel: boardViewModel) { selectedButtonIndex = 6 }
-                }
-                .padding()
+    
+    private func selectRecording(recording: Recording) {
+        let name = recording.name
+        
+        switch mode {
+        case .add:
+            boardViewModel.addSoundButton(title: name, recording: recording)
+        case .edit(let button):
+            if let index = boardViewModel.soundButtons.firstIndex(where: { $0.id == button.id }) {
+                boardViewModel.soundButtons[index].recording = recording
             }
-            .padding()
         }
-        .sheet(item: $selectedButtonIndex) { index in
-            RecordingPickerView(buttonIndex: index)
-                .environmentObject(audioManager)
-        }
+        dismiss()
     }
 
-    private func buttonLabel(_ index: Int) -> String {
-        if let url = audioManager.buttonAssignments[index] {
-            return url.deletingPathExtension().lastPathComponent
-        }
-        return "Button\(index)"
-    }
 }
 
 #Preview {
+    let audioManager = AudioManager()
+    let boardViewModel = BoardViewModel(audioManager: audioManager)
     BoardView()
-        .environmentObject(AudioManager())
+        .environmentObject(boardViewModel)
+    
 }
