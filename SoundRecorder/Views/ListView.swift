@@ -69,7 +69,6 @@ struct ListView: View {
                             .swipeActions(edge: .leading) {
                                 Button {
                                     renameText = recording.name
-                                    //renamingURL = recording.url
                                     renamingRecording = recording
                                 } label: {
                                     Label("Rename", systemImage: "pencil")
@@ -89,15 +88,7 @@ struct ListView: View {
                             for index in indexSet {
                                 let recordingToDelete = audioManager.recordings[index]
                                 audioManager.deleteRecording(recording: recordingToDelete)
-                                /*
-                                let url = audioManager.recordings[index].url
-                                try? FileManager.default.removeItem(at: url)
-                                 */
                             }
-                            /*
-                            audioManager.recordings.remove(atOffsets: indexSet)
-                            audioManager.notifyAudioObservers()
-                             */
                         }
                 }
             }
@@ -117,20 +108,9 @@ struct ListView: View {
                 TextField("Name", text: $renameText)
                 Button("Cancel", role: .cancel) { renamingRecording = nil }
                 Button("Save") {
-                    //guard renamingRecording != nil && !renameText.isEmpty else { return }
                     guard let recording = renamingRecording, !renameText.isEmpty else { return }
-                    /*
-                    if let newURL = audioManager.renameRecording(at: url, to: renameText) {
-                        if currentlyPlayingURL == url {
-                            currentlyPlayingURL = newURL
-                        }
-                    }
-                     */
-                    //renamingRecording?.name = renameText
                     audioManager.renameRecording(recording: recording, to: renameText)
                     renamingRecording = nil
-                    //renamingURL = nil
-                     
                 }
             }
         }

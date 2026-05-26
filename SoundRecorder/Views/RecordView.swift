@@ -480,6 +480,5 @@ enum WaveformExtractor {
 }
 
 #Preview {
-    //RecordView(audioManager: AudioManager())
     RecordView(audioRecorderViewModel: AudioRecorderViewModel(audioManager: AudioManager()))
 }
