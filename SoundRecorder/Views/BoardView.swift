@@ -65,10 +65,10 @@ struct BoardView: View {
             }
         }
         .sheet(isPresented: $showingAddSheet) {
-            RecordingPickerView(mode: .add, boardViewModel: boardViewModel)
+            RecordingPickerView(mode: .add, boardViewModel: boardViewModel, audioManager: boardViewModel.audioManager)
         }
         .sheet(item: $buttonToReassign) { button in
-            RecordingPickerView(mode: .edit(button), boardViewModel: boardViewModel)
+            RecordingPickerView(mode: .edit(button), boardViewModel: boardViewModel, audioManager: boardViewModel.audioManager)
         }
     }
 }
@@ -111,7 +111,8 @@ enum PickerMode: Identifiable {
 
 struct RecordingPickerView: View {
     let mode: PickerMode
-    @State var boardViewModel: BoardViewModel
+    @ObservedObject var boardViewModel: BoardViewModel
+    @ObservedObject var audioManager: AudioManager
     @Environment(\.dismiss) private var dismiss
 
     private var title: String {
@@ -124,16 +125,16 @@ struct RecordingPickerView: View {
     var body: some View {
         NavigationStack {
             List {
-                if boardViewModel.audioManager.recordings.isEmpty {
+                if audioManager.recordings.isEmpty {
                     Text("No recordings available")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(boardViewModel.audioManager.recordings, id: \.self) { recording in
+                    ForEach(audioManager.recordings, id: \.self) { recording in
                         Button {
                             selectRecording(recording: recording)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(recording.url.deletingPathExtension().lastPathComponent)
+                                Text(recording.name)
                                     .font(.body)
                                 Text(recording.url.lastPathComponent)
                                     .font(.caption)
@@ -169,7 +170,6 @@ struct RecordingPickerView: View {
             boardViewModel.addSoundButton(title: name, recording: recording)
         case .edit(let button):
             if let index = boardViewModel.soundButtons.firstIndex(where: { $0.id == button.id }) {
-                //audioManager.soundButtons[index].title = name
                 boardViewModel.soundButtons[index].recording = recording
             }
         }
@@ -182,7 +182,6 @@ struct RecordingPickerView: View {
     let audioManager = AudioManager()
     let boardViewModel = BoardViewModel(audioManager: audioManager)
     BoardView()
-        //.environmentObject(audioManager)
         .environmentObject(boardViewModel)
     
 }

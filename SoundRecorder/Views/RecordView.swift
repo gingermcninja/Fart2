@@ -24,6 +24,10 @@ struct RecordView: View {
     init(audioManager: AudioManager) {
         _vm = StateObject(wrappedValue: AudioRecorderViewModel(audioManager: audioManager))
     }
+    
+    init(audioRecorderViewModel: AudioRecorderViewModel) {
+        _vm = StateObject(wrappedValue: audioRecorderViewModel)
+    }
 
     var body: some View {
         ZStack {
@@ -476,5 +480,6 @@ enum WaveformExtractor {
 }
 
 #Preview {
-    RecordView(audioManager: AudioManager())
+    //RecordView(audioManager: AudioManager())
+    RecordView(audioRecorderViewModel: AudioRecorderViewModel(audioManager: AudioManager()))
 }

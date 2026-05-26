@@ -12,7 +12,6 @@ import CoreMedia
 
 class AudioManager: ObservableObject {
     @Published var recordingNames: [URL] = []
-    @Published var soundButtons: [SoundButton] = []
     @Published var recordings: [Recording] = []
     
     var audioPlayer: AVAudioPlayer?
@@ -37,38 +36,6 @@ class AudioManager: ObservableObject {
         for observer in audioObservers {
             observer.recordingsUpdated()
         }
-    }
-
-    /*
-    func addSoundButton(title: String, recording: Recording) {
-        soundButtons.append(SoundButton(title: title, recording: recording))
-    }
-
-    func removeSoundButton(id: UUID) {
-        soundButtons.removeAll { $0.id == id }
-    }
-     */
-
-    func renameRecording(at url: URL, to newName: String) -> URL? {
-        let newURL = url.deletingLastPathComponent()
-            .appendingPathComponent(newName)
-            .appendingPathExtension(url.pathExtension)
-
-        do {
-            try FileManager.default.moveItem(at: url, to: newURL)
-        } catch {
-            return nil
-        }
-
-        if let index = recordingNames.firstIndex(of: url) {
-            recordingNames[index] = newURL
-        }
-
-        for i in soundButtons.indices where soundButtons[i].recording.url == url {
-            soundButtons[i].recording.url = newURL
-        }
-
-        return newURL
     }
     
     func renameRecording(recording: Recording, to newName: String) {

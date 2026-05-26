@@ -117,7 +117,8 @@ struct ListView: View {
                 TextField("Name", text: $renameText)
                 Button("Cancel", role: .cancel) { renamingRecording = nil }
                 Button("Save") {
-                    guard renamingRecording != nil && !renameText.isEmpty else { return }
+                    //guard renamingRecording != nil && !renameText.isEmpty else { return }
+                    guard let recording = renamingRecording, !renameText.isEmpty else { return }
                     /*
                     if let newURL = audioManager.renameRecording(at: url, to: renameText) {
                         if currentlyPlayingURL == url {
@@ -125,7 +126,8 @@ struct ListView: View {
                         }
                     }
                      */
-                    renamingRecording?.name = renameText
+                    //renamingRecording?.name = renameText
+                    audioManager.renameRecording(recording: recording, to: renameText)
                     renamingRecording = nil
                     //renamingURL = nil
                      

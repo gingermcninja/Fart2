@@ -17,4 +17,13 @@ struct Recording: Identifiable, Equatable, Hashable {
         self.name = name
         self.url = recordingURL
     }
+    
+    static func == (lhs: Recording, rhs: Recording) -> Bool {
+        return lhs.id == rhs.id && lhs.url == rhs.url
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(url)
+    }
 }

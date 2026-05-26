@@ -128,15 +128,9 @@ class AudioRecorderViewModel: NSObject, ObservableObject, AVAudioRecorderDelegat
             try? FileManager.default.removeItem(at: url)
             savedURL = trimmedURL
         } else {
-            //audioManager.recordingNames.append(url)
             savedURL = url
         }
 
-        /*
-        if !name.isEmpty {
-            let _ = audioManager.renameRecording(at: savedURL, to: name)
-        }
-         */
         Task {
             let newRecord = await Recording(name: recordingName, recordingURL: savedURL)
             await audioManager.addRecording(recording: newRecord)
