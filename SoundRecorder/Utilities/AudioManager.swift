@@ -59,13 +59,13 @@ class AudioManager: ObservableObject {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let outputURL = documents.appendingPathComponent(filename)
 
-        exportSession.outputURL = outputURL
-        exportSession.outputFileType = .m4a
         exportSession.timeRange = timeRange
 
-        await exportSession.export()
-
-        guard exportSession.status == .completed else { return nil }
+        do {
+            try await exportSession.export(to: outputURL, as: .m4a)
+        } catch {
+            return nil
+        }
 
         await MainActor.run {
             recordingNames.append(outputURL)

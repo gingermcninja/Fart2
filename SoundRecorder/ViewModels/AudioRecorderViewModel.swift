@@ -36,10 +36,16 @@ class AudioRecorderViewModel: NSObject, ObservableObject, AVAudioRecorderDelegat
     }
 
     private func audioFilename() -> URL {
-        let formatter = ISO8601DateFormatter()
-        let filename = formatter.string(from: Date()) + ".m4a"
+        let baseFilename = "Recording"
+        var counter = 1
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return documents.appendingPathComponent(filename)
+        var pendingFilename = "\(baseFilename)-\(counter).m4a"
+        print(documents.appendingPathComponent(pendingFilename).path(percentEncoded: false))
+        while (FileManager.default.fileExists(atPath: documents.appendingPathComponent(pendingFilename).path(percentEncoded: false))) {
+            counter += 1
+            pendingFilename = "\(baseFilename)-\(counter).m4a"
+        }
+        return documents.appendingPathComponent(pendingFilename)
     }
 
     func startRecording() {
