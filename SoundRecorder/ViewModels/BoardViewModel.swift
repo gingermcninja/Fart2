@@ -26,6 +26,12 @@ class BoardViewModel: AudioObserver, ObservableObject {
         soundButtons.removeAll { $0.id == id }
     }
 
+    func renameSoundButton(id: UUID, title: String) {
+        if let index = soundButtons.firstIndex(where: { $0.id == id }) {
+            soundButtons[index].title = title
+        }
+    }
+
 
     func play(url: URL) {
         do {
