@@ -114,6 +114,8 @@ struct RecordingPickerView: View {
     @ObservedObject var boardViewModel: BoardViewModel
     @ObservedObject var audioManager: AudioManager
     @Environment(\.dismiss) private var dismiss
+    @State private var isRenaming = false
+    @State private var renameText: String = ""
 
     private var title: String {
         switch mode {
@@ -146,6 +148,11 @@ struct RecordingPickerView: View {
                 }
 
                 if case .edit(let button) = mode {
+                    Button("Rename Button") {
+                        renameText = button.title
+                        isRenaming = true
+                    }
+
                     Button("Remove from Board", role: .destructive) {
                         boardViewModel.removeSoundButton(id: button.id)
                         dismiss()
@@ -157,6 +164,16 @@ struct RecordingPickerView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                }
+            }
+            .alert("Rename Button", isPresented: $isRenaming) {
+                TextField("Name", text: $renameText)
+                Button("Cancel", role: .cancel) { }
+                Button("Save") {
+                    if case .edit(let button) = mode, !renameText.isEmpty {
+                        boardViewModel.renameSoundButton(id: button.id, title: renameText)
+                        dismiss()
+                    }
                 }
             }
         }
