@@ -50,6 +50,9 @@ class AudioRecorderViewModel: NSObject, ObservableObject, AVAudioRecorderDelegat
 
     func startRecording() {
         errorMessage = nil
+        if pendingRecordingURL != nil {
+            discardPendingRecording()
+        }
 
         guard authorizationStatus == .authorized else {
             errorMessage = "Microphone access not granted."
