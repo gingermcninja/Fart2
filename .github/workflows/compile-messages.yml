@@ -1,0 +1,20 @@
+name: compile-messages
+on:
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  compile-messages:
+    runs-on: macos-latest
+    steps:
+      - name: Create Changelog
+        id: changelog
+        uses: actions/github-script@v6.3.1
+        env:
+          COMMITS: ${{ toJSON(github.event.commits) }}
+        with:
+          result-encoding: string
+          script: |
+            const commits = github.event.commits;
+            var lines = "## What’s Changed\n\n"+github.event.commits;
+            return lines;
